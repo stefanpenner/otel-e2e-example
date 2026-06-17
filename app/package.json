@@ -1,0 +1,23 @@
+{
+  "name": "otel-e2e-example-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tiny instrumented Express app (frontend + backend) for the OTel e2e demo",
+  "main": "app.js",
+  "scripts": {
+    "start": "node --require ./instrumentation.js app.js"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/auto-instrumentations-node": "0.52.1",
+    "@opentelemetry/sdk-node": "0.54.2",
+    "@opentelemetry/sdk-metrics": "1.27.0",
+    "@opentelemetry/sdk-logs": "0.54.2",
+    "@opentelemetry/exporter-trace-otlp-http": "0.54.2",
+    "@opentelemetry/exporter-metrics-otlp-http": "0.54.2",
+    "@opentelemetry/exporter-logs-otlp-http": "0.54.2",
+    "@opentelemetry/winston-transport": "0.7.0",
+    "express": "^4.19.2",
+    "winston": "^3.13.0"
+  }
+}
