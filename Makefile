@@ -1,4 +1,4 @@
-.PHONY: up down logs ps load test open clean
+.PHONY: up down logs ps load trigger test open clean
 
 up:        ## build + start the whole stack
 	docker compose up -d --build
@@ -15,8 +15,11 @@ ps:        ## show status
 logs:      ## tail all logs
 	docker compose logs -f
 
-load:      ## send traffic to the frontend (make load N=300)
-	./scripts/load.sh http://localhost:18080/ $(or $(N),200)
+load:      ## trigger a burst of pipeline runs (make load N=50)
+	./scripts/load.sh http://localhost:18080 $(or $(N),20)
+
+trigger:   ## fire a single run (make trigger WF=ci  |  make trigger WF=deploy FAIL=1)
+	@curl -s "http://localhost:18080/trigger?workflow=$(or $(WF),ci)$(if $(FAIL),&fail=1)" ; echo
 
 test:      ## end-to-end smoke test (asserts all 3 signals land)
 	./scripts/smoke-test.sh

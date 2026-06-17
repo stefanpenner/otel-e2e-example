@@ -1,10 +1,9 @@
 # OTel end-to-end demo. Spin up:  docker compose up -d --build
 #
-#   frontend ─┐
-#   backend  ─┴─► otel-collector ─┬─► tempo       (traces)
-#                                 ├─► prometheus  (metrics, scrape)
-#                                 └─► loki        (logs)
-#                                          all three ◄── grafana (UI + alerts)
+#   simulator (fake GitHub Actions) ─► otel-collector ─┬─► tempo       (traces)
+#                                                       ├─► prometheus  (metrics, scrape)
+#                                                       └─► loki        (logs)
+#                                                  all three ◄── grafana (UI + alerts)
 
 services:
   # ---------------- telemetry pipeline ----------------
@@ -61,30 +60,19 @@ services:
       - "3000:3000"
     depends_on: [prometheus, tempo, loki]
 
-  # ---------------- the instrumented app ----------------
-  backend:
+  # ---------------- the instrumented "CI/CD system" ----------------
+  simulator:
     build: ./app
     environment:
-      ROLE: backend
-      PORT: "8081"
-      ERROR_RATE: "0.15"
-      OTEL_SERVICE_NAME: backend
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
-      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=demo
-    depends_on: [otel-collector]
-
-  frontend:
-    build: ./app
-    environment:
-      ROLE: frontend
       PORT: "8080"
-      BACKEND_URL: http://backend:8081
-      OTEL_SERVICE_NAME: frontend
+      PIPELINE_INTERVAL_MS: "4000"   # ambient: fire a run ~every 4s
+      FLAKY_RATE: "0.15"             # ~15% of test/lint steps fail
+      OTEL_SERVICE_NAME: github-actions
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
-      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=demo
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=demo,cicd.system=github-actions
     ports:
-      - "18080:8080"
-    depends_on: [backend, otel-collector]
+      - "18080:8080"   # POST/GET /trigger to fire a pipeline run
+    depends_on: [otel-collector]
 
 volumes:
   tempo-data:

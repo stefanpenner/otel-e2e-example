@@ -2,7 +2,7 @@
   "name": "otel-e2e-example-app",
   "version": "1.0.0",
   "private": true,
-  "description": "Tiny instrumented Express app (frontend + backend) for the OTel e2e demo",
+  "description": "Simulated GitHub-Actions-style CI/CD system, fully instrumented with OTel",
   "main": "app.js",
   "scripts": {
     "start": "node --require ./instrumentation.js app.js"

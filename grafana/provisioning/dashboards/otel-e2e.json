@@ -1,16 +1,16 @@
 {
   "uid": "otel-e2e",
-  "title": "OTel E2E — RED + Logs",
-  "tags": ["otel", "demo"],
+  "title": "CI/CD — Pipeline Health",
+  "tags": ["otel", "cicd", "demo"],
   "timezone": "browser",
   "schemaVersion": 39,
   "version": 1,
   "refresh": "5s",
-  "time": { "from": "now-15m", "to": "now" },
+  "time": { "from": "now-30m", "to": "now" },
   "panels": [
     {
       "id": 1,
-      "title": "Request rate (req/s)",
+      "title": "Pipeline runs/min by result",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
@@ -18,30 +18,39 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum by (role) (rate(app_requests_total[1m]))",
-          "legendFormat": "{{role}}"
+          "expr": "sum by (result) (rate(cicd_pipeline_runs_total[5m])) * 60",
+          "legendFormat": "{{result}}"
         }
       ]
     },
     {
       "id": 2,
-      "title": "Error rate (err/s)",
-      "type": "timeseries",
+      "title": "Pipeline failure rate (5m)",
+      "type": "stat",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "red" } }, "overrides": [] },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "orange", "value": 0.2 },
+            { "color": "red", "value": 0.3 }
+          ] }
+        },
+        "overrides": []
+      },
       "targets": [
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum by (role) (rate(app_errors_total[1m]))",
-          "legendFormat": "{{role}}"
+          "expr": "sum(rate(cicd_pipeline_runs_total{result=\"failure\"}[5m])) / clamp_min(sum(rate(cicd_pipeline_runs_total[5m])), 0.0001)"
         }
       ]
     },
     {
       "id": 3,
-      "title": "Backend work latency p95 (ms)",
+      "title": "Pipeline duration p95 (ms)",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
@@ -49,23 +58,54 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(app_work_duration_ms_bucket[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(cicd_pipeline_run_duration_ms_bucket[5m])))",
           "legendFormat": "p95"
         }
       ]
     },
     {
       "id": 4,
-      "title": "Logs (Loki)",
+      "title": "Job failures/min by job",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (job_name) (rate(cicd_jobs_total{result=\"failure\"}[5m])) * 60",
+          "legendFormat": "{{job_name}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Runner queue wait p95 (ms)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(cicd_job_queue_ms_bucket[5m])))",
+          "legendFormat": "p95 queue"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Pipeline logs (failures highlighted)",
       "type": "logs",
       "datasource": { "type": "loki", "uid": "loki" },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
       "options": { "showTime": true, "wrapLogMessage": true, "sortOrder": "Descending" },
       "targets": [
         {
           "refId": "A",
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "{service_name=~\"frontend|backend\"}"
+          "expr": "{service_name=\"github-actions\"}"
         }
       ]
     }

@@ -1,4 +1,5 @@
-// Explicit OTel wiring — loaded via `node --require ./instrumentation.js` BEFORE app code.
+// Explicit OTel wiring for the CI/CD simulator — loaded via `node --require ./instrumentation.js`
+// BEFORE app code.
 //
 // We wire all three signals here. (The shorthand `auto-instrumentations-node/register`
 // only sets up traces in this SDK version, so we configure metrics + logs ourselves.)
