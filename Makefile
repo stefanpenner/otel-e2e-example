@@ -1,4 +1,4 @@
-.PHONY: up down logs ps load trigger test open clean
+.PHONY: up down logs ps load trigger test open jaeger clean
 
 up:        ## build + start the whole stack
 	docker compose up -d --build
@@ -26,3 +26,6 @@ test:      ## end-to-end smoke test (asserts all 3 signals land)
 
 open:      ## open Grafana
 	open http://localhost:3000
+
+jaeger:    ## open Jaeger UI
+	open http://localhost:16686
