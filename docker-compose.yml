@@ -16,7 +16,7 @@ services:
       - "14317:4317"   # OTLP gRPC (emit from host)
       - "14318:4318"   # OTLP HTTP (emit from host)
       - "8889:8889"    # prometheus exporter (internal scrape)
-    depends_on: [tempo, prometheus, loki]
+    depends_on: [tempo, jaeger, prometheus, loki]
 
   tempo:
     image: grafana/tempo:2.6.0
@@ -26,6 +26,14 @@ services:
       - tempo-data:/var/tempo
     ports:
       - "3200:3200"   # Tempo API / TraceQL
+
+  # Jaeger — second trace store, alongside Tempo. Native OTLP ingest.
+  jaeger:
+    image: jaegertracing/all-in-one:1.60
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"   # Jaeger UI
 
   prometheus:
     image: prom/prometheus:v2.54.1

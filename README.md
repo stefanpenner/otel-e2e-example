@@ -5,6 +5,7 @@ with the whole observability backend running on your laptop.
 
 ```
  simulator (fake GitHub Actions) ─► OTel Collector ─┬─► Tempo        traces
+                                                     ├─► Jaeger       traces  (UI :16686)
                                                      ├─► Prometheus   metrics
                                                      └─► Loki         logs
                                                               ▲
@@ -33,8 +34,9 @@ The simulator fires runs on its own (~every 4s) and also on demand via an HTTP t
 ## Prereqs
 
 - Docker + Docker Compose, `curl`, `make` (optional)
-- Free ports: 3000, 3100, 3200, 8889, 9090, 18080, 14317, 14318
+- Free ports: 3000, 3100, 3200, 8889, 9090, 16686, 18080, 14317, 14318
   (collector OTLP is on host `14317`/`14318` to avoid clashing with other tools)
+- Traces fan out to **both** Tempo (in Grafana) and **Jaeger** (own UI at http://localhost:16686)
 
 ---
 

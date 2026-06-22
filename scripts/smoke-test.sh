@@ -6,6 +6,7 @@ set -uo pipefail
 SIM=http://localhost:18080
 PROM=http://localhost:9090
 TEMPO=http://localhost:3200
+JAEGER=http://localhost:16686
 LOKI=http://localhost:3100
 
 pass=0; fail=0
@@ -25,6 +26,7 @@ echo "== 1. wait for services =="
 wait_for "$SIM/healthz"  simulator  || exit 1
 wait_for "$PROM/-/ready" prometheus || exit 1
 wait_for "$TEMPO/ready"  tempo      || exit 1
+wait_for "$JAEGER/"      jaeger     || exit 1
 wait_for "$LOKI/ready"   loki       || exit 1
 
 echo "== 2. trigger pipeline runs =="
@@ -44,6 +46,11 @@ if [ -n "${val:-}" ] && awk "BEGIN{exit !($val>0)}"; then ok "metrics: cicd_pipe
 n=$(curl -sf -G "$TEMPO/api/search" --data-urlencode 'q={resource.service.name="github-actions"}' --data-urlencode 'limit=5' \
   | grep -o '"traceID"' | wc -l | tr -d ' ')
 if [ "${n:-0}" -gt 0 ]; then ok "traces: found $n pipeline trace(s)"; else bad "traces: none found"; fi
+
+# traces: Jaeger independently received the same pipeline traces (fan-out check)
+j=$(curl -sf "$JAEGER/api/traces?service=github-actions&limit=5" \
+  | grep -o '"traceID"' | wc -l | tr -d ' ')
+if [ "${j:-0}" -gt 0 ]; then ok "traces: Jaeger has $j pipeline trace(s)"; else bad "traces: Jaeger has none"; fi
 
 # logs: Loki has logs from the CI system
 m=$(curl -sf -G "$LOKI/loki/api/v1/query_range" \
