@@ -159,6 +159,59 @@ sum(rate({service_name="github-actions"} | json | level="error" [5m]))   # error
 
 ---
 
+# Part 3 — A *real* instrumented runner (not the simulator)
+
+Parts 1–2 use a fake CI engine. This part swaps in the **real** thing: a self-hosted
+GitHub Actions runner built from [actions/runner#4366](https://github.com/actions/runner/pull/4366)
+(native OpenTelemetry export), feeding the **same** collector → Tempo + Jaeger.
+
+```
+ GitHub Actions (real workflow) ─► self-hosted runner (actions/runner#4366)
+                                          │  native OTLP/HTTP
+                                          ▼
+                                    OTel Collector ─► Tempo + Jaeger
+```
+
+### How export is enabled
+
+The runner turns on native OTel when `ACTIONS_RUNNER_OTLP_ENDPOINT` is set — the
+server-side feature flag **defaults to on** when absent, so operator opt-in works on any
+self-hosted runner / GHES. Spans POST to `{endpoint}/v1/traces`.
+
+### Run it
+
+```bash
+make up                          # stack must be running (collector on host :14318)
+REPO=stefanpenner/-ci-test ./scripts/run-local-runner.sh
+```
+
+`run-local-runner.sh` mints a registration token (`gh`), configures the runner if needed,
+exports `ACTIONS_RUNNER_OTLP_ENDPOINT=http://localhost:14318`, and starts it. Then dispatch
+a workflow that targets the runner's unique label (the demo uses `[self-hosted, macOS]` so an
+ARC/Linux runner can't steal the job):
+
+```bash
+gh workflow run otel-local-runner.yml --repo stefanpenner/-ci-test
+```
+
+### What lands
+
+One trace per run: a **job** root span (`build-and-test`) with a **child span per step**
+(`Set up job`, `Checkout`, `Build`, `Unit tests`, `Lint`, …) — in **both** Jaeger
+(`service: github-actions-runner`) and Tempo. Confirm in the runner's worker diag log:
+
+```
+OTelTraceExporter] Native OTel export enabled, endpoint: http://localhost:14318
+OTelTraceExporter] Exported 11 span(s) to http://localhost:14318/v1/traces
+```
+
+> **stefanpenner-cs (k8s/ARC):** the same runner image deployed via
+> [actions-runner-controller#4465](https://github.com/actions/actions-runner-controller/pull/4465)
+> exports the same spans from a `kind`/k8s cluster — point its collector at this stack (or run a
+> collector in-cluster that forwards here). See `examples/arc/` in the `otel-explorer` repo.
+
+---
+
 ## Layout
 
 ```
@@ -169,6 +222,7 @@ tempo/  prometheus/  loki/    backend configs
 grafana/provisioning/        datasources + CI dashboard (auto-loaded)
 scripts/load.sh              trigger a burst of runs
 scripts/smoke-test.sh        e2e assertions (make test)
+scripts/run-local-runner.sh  register + run a REAL self-hosted runner (Part 3)
 docker-compose.yml           the whole stack
 ```
 
