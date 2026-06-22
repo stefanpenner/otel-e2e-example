@@ -12,6 +12,8 @@ with the whole observability backend running on your laptop.
                                                               └──  Grafana  (dashboards + alerts)
 ```
 
+> **Architecture & sequences:** see [ARCHITECTURE.md](ARCHITECTURE.md).
+
 A CI/CD pipeline is naturally trace-shaped — a run is a DAG of jobs and steps — so it's a
 great thing to observe with OTel.
 
